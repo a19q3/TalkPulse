@@ -125,6 +125,18 @@ struct TalkPulseSnapshot: Codable {
     var isStale: Bool {
         Date().timeIntervalSince(fetchedAt) > 3600
     }
+
+    var freshnessText: String {
+        let diff = Date().timeIntervalSince(fetchedAt)
+        if diff < 60 { return "just updated" }
+        if diff < 3600 { return "updated \(Int(diff / 60))m ago" }
+        if diff < 86400 { return "updated \(Int(diff / 3600))h ago" }
+        return "updated \(Int(diff / 86400))d ago"
+    }
+
+    var cacheFreshnessText: String {
+        isStale ? "cached \(freshnessText.replacingOccurrences(of: "updated ", with: ""))" : freshnessText
+    }
 }
 
 // MARK: - Configuration

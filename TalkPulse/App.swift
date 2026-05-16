@@ -87,6 +87,10 @@ struct ContentView: View {
     @State private var baseURL = ""
     @State private var categoryIds = ""
     @State private var watchKeywords = ""
+    @State private var availableCategories: [DiscourseCategory] = []
+    @State private var isTestingForum = false
+    @State private var isLoadingCategories = false
+    @State private var showingResetConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -123,6 +127,16 @@ struct ContentView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .frame(minWidth: 620, minHeight: 640)
         .onAppear(perform: loadInitialState)
+        .alert("Reset settings?", isPresented: $showingResetConfirmation) {
+            Button("Reset", role: .destructive) {
+                loadConfigDraft(TalkPulseConfig.default)
+                availableCategories = []
+                saveSettings(refreshAfterSave: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This restores the default forum URL and clears category and watch keyword fields.")
+        }
     }
 
     private var header: some View {
@@ -137,7 +151,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("TalkPulse")
                     .font(.system(size: 22, weight: .semibold))
-                Text(UserDefaults.talkPulse.loadConfig().baseURL)
+                Text(headerSubtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -147,7 +161,7 @@ struct ContentView: View {
 
             if let snap = snapshot {
                 CountBadge(label: "new", count: snap.newTopicsCount, color: .green)
-                CountBadge(label: "unread", count: snap.unreadTopicsCount, color: .red)
+                CountBadge(label: "unseen", count: snap.unreadTopicsCount, color: .red)
             }
 
             Button(action: refresh) {
@@ -164,6 +178,12 @@ struct ContentView: View {
             .keyboardShortcut("r", modifiers: [.command])
             .accessibilityLabel("Refresh feed")
         }
+    }
+
+    private var headerSubtitle: String {
+        let forum = UserDefaults.talkPulse.loadConfig().baseURL
+        guard let snapshot else { return "\(forum) - no feed saved" }
+        return "\(forum) - \(snapshot.cacheFreshnessText)"
     }
 
     private var feedPanel: some View {
@@ -201,8 +221,11 @@ struct ContentView: View {
             } else {
                 EmptyStateCard(
                     title: "No feed saved yet",
-                    message: "Add a Discourse forum in Settings, then refresh to load the latest topics."
-                )
+                    message: "Confirm a public Discourse forum in Settings, then save and refresh to load the latest topics.",
+                    actionLabel: "Open Settings"
+                ) {
+                    selectedPanel = .settings
+                }
             }
         }
     }
@@ -212,7 +235,7 @@ struct ContentView: View {
             Text("Latest topics")
                 .font(.system(size: 15, weight: .semibold))
 
-            Text("Fetched \(snap.fetchedAt, style: .relative) ago")
+            Text(snap.cacheFreshnessText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -228,7 +251,7 @@ struct ContentView: View {
                 Button {
                     markAllAsRead()
                 } label: {
-                    Label("Mark all read", systemImage: "checkmark.circle")
+                    Label("Mark all seen", systemImage: "checkmark.circle")
                 }
                 .font(.caption)
                 .buttonStyle(.borderless)
@@ -250,6 +273,25 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                     TextField("https://talk.nervos.org", text: $baseURL)
                         .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 8) {
+                        Button {
+                            testForum()
+                        } label: {
+                            if isTestingForum {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(width: 16, height: 16)
+                            } else {
+                                Label("Test forum", systemImage: "checkmark.seal")
+                            }
+                        }
+                        .disabled(isTestingForum || isLoading)
+
+                        Text("Uses /latest.json to verify this is a reachable Discourse forum.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
             }
 
@@ -261,6 +303,33 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                         TextField("1, 5, 10", text: $categoryIds)
                             .textFieldStyle(.roundedBorder)
+                        HStack(spacing: 8) {
+                            Button {
+                                loadCategories()
+                            } label: {
+                                if isLoadingCategories {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .frame(width: 16, height: 16)
+                                } else {
+                                    Label("Load categories", systemImage: "list.bullet.rectangle")
+                                }
+                            }
+                            .disabled(isLoadingCategories || isLoading)
+
+                            Text("Latest topics are always included; categories add focused coverage.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        if !availableCategories.isEmpty {
+                            CategorySelectionGrid(
+                                categories: availableCategories,
+                                selectedIds: currentCategoryIdSet,
+                                toggle: toggleCategory
+                            )
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -282,8 +351,7 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
 
                 Button {
-                    loadConfigDraft(TalkPulseConfig.default)
-                    saveSettings(refreshAfterSave: false)
+                    showingResetConfirmation = true
                 } label: {
                     Label("Reset defaults", systemImage: "arrow.counterclockwise")
                 }
@@ -293,11 +361,11 @@ struct ContentView: View {
                 Button(role: .destructive) {
                     clearReadState()
                 } label: {
-                    Label("Clear read state", systemImage: "circle.dashed")
+                    Label("Clear seen state", systemImage: "circle.dashed")
                 }
             }
 
-            Text("Settings, feed cache, and host-app read state use the shared app group when available. Widget clicks open the forum directly so TalkPulse stays out of the way.")
+            Text("Settings, feed cache, and host-app seen state use the shared app group when available. Widget clicks open the forum directly so TalkPulse stays out of the way.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -306,8 +374,13 @@ struct ContentView: View {
 
     private func loadInitialState() {
         UserDefaults.migrateStandardDefaultsIfNeeded()
-        snapshot = UserDefaults.talkPulse.loadSnapshot()
+        let savedSnapshot = UserDefaults.talkPulse.loadSnapshot()
+        snapshot = savedSnapshot
         loadConfigDraft(UserDefaults.talkPulse.loadConfig())
+        if savedSnapshot == nil {
+            selectedPanel = .settings
+            configMessage = "Start by confirming a forum URL, then save and refresh."
+        }
         Task {
             await TalkFeedService.shared.onAppOpen()
         }
@@ -341,6 +414,18 @@ struct ContentView: View {
     }
 
     private func draftConfig() throws -> TalkPulseConfig {
+        let normalizedURL = try normalizedDraftBaseURL()
+
+        return TalkPulseConfig(
+            baseURL: normalizedURL,
+            subscribedCategoryIds: try parseCategoryIds(categoryIds),
+            watchKeywords: parseKeywords(watchKeywords),
+            lastOpenedAt: nil,
+            lastSeenTopicId: nil
+        )
+    }
+
+    private func normalizedDraftBaseURL() throws -> String {
         let trimmedURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedURL = trimmedURL.hasSuffix("/") ? String(trimmedURL.dropLast()) : trimmedURL
 
@@ -350,13 +435,7 @@ struct ContentView: View {
             throw ConfigError.invalidURL
         }
 
-        return TalkPulseConfig(
-            baseURL: normalizedURL,
-            subscribedCategoryIds: try parseCategoryIds(categoryIds),
-            watchKeywords: parseKeywords(watchKeywords),
-            lastOpenedAt: nil,
-            lastSeenTopicId: nil
-        )
+        return normalizedURL
     }
 
     private func parseCategoryIds(_ text: String) throws -> [Int] {
@@ -381,6 +460,100 @@ struct ContentView: View {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    private var currentCategoryIdSet: Set<Int> {
+        Set(categoryIds
+            .split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .filter { $0 > 0 })
+    }
+
+    private func toggleCategory(_ category: DiscourseCategory) {
+        var ids = currentCategoryIdSet
+        if ids.contains(category.id) {
+            ids.remove(category.id)
+        } else {
+            ids.insert(category.id)
+        }
+        categoryIds = ids.sorted().map(String.init).joined(separator: ", ")
+    }
+
+    private func testForum() {
+        isTestingForum = true
+        lastError = nil
+        configMessage = nil
+
+        Task {
+            do {
+                let data = try await fetchDraftDiscourseData(path: "/latest.json")
+                _ = try JSONDecoder().decode(DiscourseTopicList.self, from: data)
+                await MainActor.run {
+                    isTestingForum = false
+                    configMessage = "Forum looks good. Save and refresh to update the feed and widget."
+                }
+            } catch {
+                await MainActor.run {
+                    isTestingForum = false
+                    configMessage = nil
+                    lastError = feedErrorMessage(error)
+                    selectedPanel = .settings
+                }
+            }
+        }
+    }
+
+    private func loadCategories() {
+        isLoadingCategories = true
+        lastError = nil
+        configMessage = nil
+
+        Task {
+            do {
+                let data = try await fetchDraftDiscourseData(path: "/categories.json")
+                let categoryList = try JSONDecoder().decode(DiscourseCategoryList.self, from: data)
+                let categories = categoryList.category_list.categories
+                    .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+
+                await MainActor.run {
+                    availableCategories = categories
+                    isLoadingCategories = false
+                    configMessage = categories.isEmpty
+                        ? "No categories were returned. You can still use the latest feed."
+                        : "Loaded \(categories.count) categories."
+                }
+            } catch {
+                await MainActor.run {
+                    availableCategories = []
+                    isLoadingCategories = false
+                    configMessage = nil
+                    lastError = feedErrorMessage(error)
+                    selectedPanel = .settings
+                }
+            }
+        }
+    }
+
+    private func fetchDraftDiscourseData(path: String) async throws -> Data {
+        let base = try normalizedDraftBaseURL()
+        guard let url = URL(string: base + path) else {
+            throw TalkFeedService.FeedError.networkError("Invalid URL path: \(path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("TalkPulse/1.0 (macOS App)", forHTTPHeaderField: "User-Agent")
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw TalkFeedService.FeedError.networkError("Could not reach \(base)")
+        }
+
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            throw TalkFeedService.FeedError.httpError(httpResponse.statusCode, path)
+        }
+
+        return data
     }
 
     private func refresh() {
@@ -508,7 +681,7 @@ struct ContentView: View {
                     snapshot = snap
                     UserDefaults.talkPulse.saveSnapshot(snap)
                 }
-                configMessage = "Read state cleared."
+                configMessage = "Seen state cleared."
                 WidgetCenter.shared.reloadAllTimelines()
             }
         }
@@ -552,7 +725,7 @@ struct TopicRow: View {
                     HStack(spacing: 6) {
                         CategoryPill(name: topic.categoryName, color: categoryColor(for: topic))
                         if let status = topic.statusLabel {
-                            StatusLabel(text: status, color: status == "new" ? .green : .red)
+                            StatusLabel(text: status == "unread" ? "unseen" : status, color: status == "new" ? .green : .red)
                         }
                         Text("\(topic.replyCount) replies")
                         Text(topic.displayTime)
@@ -644,6 +817,51 @@ struct WatchlistSection: View {
             }
         }
         .padding(.top, 4)
+    }
+}
+
+struct CategorySelectionGrid: View {
+    let categories: [DiscourseCategory]
+    let selectedIds: Set<Int>
+    let toggle: (DiscourseCategory) -> Void
+
+    private let columns = [GridItem(.adaptive(minimum: 148), spacing: 8)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(categories, id: \DiscourseCategory.id) { (category: DiscourseCategory) in
+                Button {
+                    toggle(category)
+                } label: {
+                    HStack(spacing: 7) {
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(hexColor(category.color) ?? .secondary)
+                            .frame(width: 8, height: 18)
+
+                        Text(category.displayName)
+                            .font(.system(size: 11, weight: selectedIds.contains(category.id) ? .semibold : .medium))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+
+                        Spacer(minLength: 4)
+
+                        if selectedIds.contains(category.id) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(selectedIds.contains(category.id) ? Color.accentColor.opacity(0.12) : Color(nsColor: .textBackgroundColor).opacity(0.55))
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(selectedIds.contains(category.id) ? "Remove" : "Add") category \(category.displayName)")
+            }
+        }
+        .padding(.top, 2)
     }
 }
 
@@ -739,6 +957,15 @@ struct SettingsCard<Content: View>: View {
 struct EmptyStateCard: View {
     let title: String
     let message: String
+    let actionLabel: String?
+    let action: (() -> Void)?
+
+    init(title: String, message: String, actionLabel: String? = nil, action: (() -> Void)? = nil) {
+        self.title = title
+        self.message = message
+        self.actionLabel = actionLabel
+        self.action = action
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -748,6 +975,11 @@ struct EmptyStateCard: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if let actionLabel, let action {
+                Button(actionLabel, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 4)
+            }
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)

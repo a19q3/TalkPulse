@@ -30,7 +30,7 @@ flowchart TD
     A --> C["Settings"]
     B --> D["Topic list"]
     B --> E["Watchlist hits"]
-    B --> F["Refresh / Mark all read / Clear read state"]
+    B --> F["Refresh / Mark all seen / Clear seen state"]
     C --> G["Forum URL"]
     C --> H["Category IDs"]
     C --> I["Watch keywords"]
@@ -146,13 +146,27 @@ The host app helps by offering manual Refresh, but the widget should visually ex
 
 | Issue | Severity | Why it matters |
 | --- | --- | --- |
-| Widget read state is no longer updated on widget click | High | Direct website opening solves double popup, but unread badges can become less trustworthy. |
+| Widget clicks do not update host-app seen state | High | Direct website opening solves double popup, but the host app cannot know which widget-opened topics were seen. |
 | "New" and "Unread" may feel too similar | High | For public forums without account sync, users may not understand the difference. |
 | First-run setup is developer-heavy | High | Xcode signing and App Groups are normal for a repo, but not ergonomic for general users. |
 | Category IDs require external lookup | Medium | Asking users to inspect `categories.json` is functional but not friendly. |
 | Widget freshness is subtle | Medium | Users need to know whether they are looking at live or stale content. |
 | Large widget can waste space when watchlist is empty | Medium | The layout should adapt to the available signal. |
 | Host app still feels like a utility panel | Low | It works, but it could guide setup, status, and troubleshooting more clearly. |
+
+## Implemented Improvements
+
+The first implementation pass has moved these items out of the recommendation backlog:
+
+| Area | Change |
+| --- | --- |
+| Widget signal model | Widget headers now emphasize `new` and freshness, not unreliable unread counts. |
+| Widget click model | Widget topics continue to open the forum directly without bringing the host app forward. |
+| Freshness | Host app and widget surfaces show compact cache age such as `updated 8m ago` or `cached 2h ago`. |
+| Large widget empty lower area | Large widget now uses empty watchlist space for a compact freshness/no-hits footer. |
+| First-run guidance | First launch without a saved feed opens Settings and prompts the user to confirm a forum URL. |
+| Forum setup | Settings now includes `Test forum` and `Load categories`, so users do not have to inspect JSON manually. |
+| Local state wording | User-facing controls now use `seen/unseen` where that better describes local state. |
 
 ## Recommended Optimization Path
 
@@ -162,10 +176,10 @@ Decision: keep widget clicks direct-to-browser by default.
 
 Recommended UI changes:
 
-- Treat widget clicks as "open only", not "mark read".
-- In widget UI, prioritize `new` over `unread`; consider hiding unread counts from widgets until there is a background-safe way to mark widget clicks read.
+- Treat widget clicks as "open only", not "mark read". Implemented.
+- In widget UI, prioritize `new` over `unread`; consider hiding unread counts from widgets until there is a background-safe way to mark widget clicks read. Implemented for widget surfaces.
 - In the host app, keep "Mark all as read" and row-level read behavior.
-- Rename copy from "read/unread" to "seen/unseen" only if the product wants to be explicit that this is local state, not forum account state.
+- Rename copy from "read/unread" to "seen/unseen" only if the product wants to be explicit that this is local state, not forum account state. Partially implemented in user-facing controls.
 
 Longer-term technical option:
 
@@ -177,8 +191,8 @@ Current flow expects the user to know what to configure.
 
 Recommended UI changes:
 
-- On first launch, show Settings first if no successful snapshot exists.
-- Add a "Test forum" action next to the forum URL field.
+- On first launch, show Settings first if no successful snapshot exists. Implemented.
+- Add a "Test forum" action next to the forum URL field. Implemented.
 - After a successful fetch, show a clear "Now add the widget" step.
 - In README, keep developer setup details, but inside the app keep the language product-oriented.
 
@@ -212,7 +226,7 @@ Large widget:
 
 Recommended UI changes:
 
-- Add "Load categories" so users can select categories by name instead of typing IDs.
+- Add "Load categories" so users can select categories by name instead of typing IDs. Implemented.
 - Validate the URL and category IDs before saving.
 - Show the current App Group/sync state in a diagnostic area, not primary UI.
 - Add a "Reset to defaults" confirmation instead of an immediate destructive-looking action.

@@ -10,8 +10,8 @@ Set a forum URL, optionally add category IDs and watch keywords, then keep the l
 - Medium widget: up to two readable topic rows.
 - Large widget: up to four topic rows plus watchlist hits when available.
 - Clickable rows: open the topic directly in your browser.
-- Local read state: topics opened from the host app are marked read on the next refresh.
-- New and unread badges in both the host app and widget.
+- Local seen state: topics opened from the host app are marked seen on the next refresh.
+- New-topic badges in the widget, plus local seen/unseen controls in the host app.
 - In-app settings for forum URL, category IDs, and watch keywords.
 - Offline cache with stale/error hints instead of a blank widget.
 - Per-user configuration, so different people can build the app with their own Apple account and their own forum settings.
@@ -70,6 +70,8 @@ Open the TalkPulse app and go to Settings.
 
 Category IDs are optional. If you leave them empty, TalkPulse still reads the forum's latest feed.
 
+Use **Test forum** to verify the URL before saving. Use **Load categories** to pick categories by name instead of manually inspecting JSON.
+
 To find category IDs, open:
 
 ```text
@@ -103,15 +105,16 @@ APP_GROUP_ID=group.com.yourname.talkpulse \
 ./setup.sh
 ```
 
-Both targets must use the same App Group if you want the host app and widget to share settings, cached feed data, and read state. If App Groups are not available for your account, the app can still fetch data, but the host app and widget may not stay fully in sync.
+Both targets must use the same App Group if you want the host app and widget to share settings, cached feed data, and seen state. If App Groups are not available for your account, the app can still fetch data, but the host app and widget may not stay fully in sync.
 
 ## Widget Behavior
 
 - The widget refreshes about every 30 minutes.
 - Fetch failures retry sooner and keep showing cached content.
 - The host app's Refresh button updates the cache immediately.
+- Widgets show feed freshness so stale cache is visible.
 - Clicking a widget topic opens the browser directly. The host app is not brought forward, because having both the app and website pop up is noisy.
-- Opening a topic from inside the host app records that topic as read locally.
+- Opening a topic from inside the host app records that topic as seen locally.
 - Watchlist hits are based on keyword matches in topic titles.
 
 ## If The Widget Does Not Appear
@@ -170,7 +173,7 @@ This command is useful for compile checks. For actually using the widget on your
 ```text
 Shared/
   FeedService.swift      Discourse fetching, category merging, watchlist scan
-  Models.swift           Models, configuration, local read state, shared storage
+  Models.swift           Models, configuration, local seen state, shared storage
 
 TalkPulse/
   App.swift              macOS host app and settings UI
@@ -186,7 +189,7 @@ TalkPulseWidget/
 
 ## Privacy
 
-TalkPulse stores your forum URL, category IDs, watch keywords, cached feed snapshot, and read state locally. It does not send data to any service other than the Discourse forum URL you configure.
+TalkPulse stores your forum URL, category IDs, watch keywords, cached feed snapshot, and seen state locally. It does not send data to any service other than the Discourse forum URL you configure.
 
 ## License
 

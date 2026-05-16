@@ -93,13 +93,6 @@ struct SmallWidgetView: View {
                     EmptyStateView()
                 }
 
-                if !entry.snapshot.watchHits.isEmpty {
-                    Label("\(entry.snapshot.watchHits.count) watchlist", systemImage: "eye")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.orange)
-                        .lineLimit(1)
-                }
-
                 Spacer(minLength: 0)
             }
         }
@@ -195,6 +188,9 @@ struct LargeWidgetView: View {
                     ForEach(entry.snapshot.watchHits.prefix(2)) { hit in
                         WatchHitLink(hit: hit, compact: false)
                     }
+                } else if !displayed.isEmpty {
+                    Divider().padding(.vertical, 6)
+                    WidgetFreshnessFooter(snapshot: entry.snapshot)
                 }
             }
         }
@@ -236,18 +232,22 @@ struct HeaderView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Label("TalkPulse", systemImage: "waveform.path.ecg")
-                .font(.system(size: compact ? 13 : 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .labelStyle(.titleAndIcon)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Label("TalkPulse", systemImage: "waveform.path.ecg")
+                    .font(.system(size: compact ? 13 : 15, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .labelStyle(.titleAndIcon)
+                    .lineLimit(1)
+
+                Text(entry.snapshot.cacheFreshnessText)
+                    .font(.system(size: compact ? 8 : 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
 
             Spacer(minLength: 6)
 
-            HStack(spacing: 4) {
-                WidgetCountBadge(count: entry.snapshot.newTopicsCount, color: .green, compact: compact)
-                WidgetCountBadge(count: entry.snapshot.unreadTopicsCount, color: .red, compact: compact)
-            }
+            WidgetCountBadge(count: entry.snapshot.newTopicsCount, suffix: "new", color: .green, compact: compact)
         }
     }
 }
@@ -266,7 +266,7 @@ struct SmallHeaderView: View {
             Spacer(minLength: 4)
 
             if entry.snapshot.newTopicsCount > 0 {
-                Text("\(entry.snapshot.newTopicsCount)")
+                Text("\(entry.snapshot.newTopicsCount) new")
                     .font(.system(size: 10, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(.green)
@@ -276,17 +276,12 @@ struct SmallHeaderView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-            } else if entry.snapshot.unreadTopicsCount > 0 {
-                Text("\(entry.snapshot.unreadTopicsCount)")
-                    .font(.system(size: 10, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.red.opacity(0.13))
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            } else {
+                Text(entry.snapshot.cacheFreshnessText)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
             }
         }
     }
@@ -294,12 +289,13 @@ struct SmallHeaderView: View {
 
 struct WidgetCountBadge: View {
     let count: Int
+    let suffix: String
     let color: Color
     let compact: Bool
 
     var body: some View {
         if count > 0 {
-            Text("\(count)")
+            Text("\(count) \(suffix)")
                 .font(.system(size: compact ? 10 : 11, weight: .bold))
                 .foregroundStyle(color)
                 .monospacedDigit()
@@ -376,13 +372,13 @@ struct TopicRowWidget: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 7) {
-            WidgetStatusDot(isNew: topic.isNew, isUnread: !topic.isRead)
+            WidgetStatusDot(isNew: topic.isNew)
                 .padding(.top, compact ? 5 : 6)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(topic.title)
-                    .font(.system(size: compact ? 12 : 11, weight: topic.isRead ? .medium : .semibold))
-                    .foregroundStyle(topic.isRead ? .secondary : .primary)
+                    .font(.system(size: compact ? 12 : 11, weight: topic.isNew ? .semibold : .medium))
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -392,10 +388,10 @@ struct TopicRowWidget: View {
                         .foregroundStyle(widgetHexColor(topic.categoryColorHex) ?? .blue)
                         .lineLimit(1)
 
-                    if let status = topic.statusLabel {
-                        Text(status)
+                    if topic.isNew {
+                        Text("new")
                             .font(.system(size: compact ? 8 : 9, weight: .bold))
-                            .foregroundStyle(status == "new" ? .green : .red)
+                            .foregroundStyle(.green)
                             .lineLimit(1)
                     }
 
@@ -423,12 +419,12 @@ struct SmallTopicRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .top, spacing: 7) {
-                WidgetStatusDot(isNew: topic.isNew, isUnread: !topic.isRead)
+                WidgetStatusDot(isNew: topic.isNew)
                     .padding(.top, 6)
 
                 Text(topic.title)
-                    .font(.system(size: 12, weight: topic.isRead ? .medium : .semibold))
-                    .foregroundStyle(topic.isRead ? .secondary : .primary)
+                    .font(.system(size: 12, weight: topic.isNew ? .semibold : .medium))
+                    .foregroundStyle(.primary)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .minimumScaleFactor(0.88)
@@ -455,7 +451,7 @@ struct WatchHitRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            WidgetStatusDot(isNew: hit.isNew, isUnread: hit.isUnread)
+            WidgetStatusDot(isNew: hit.isNew)
 
             Text(hit.keyword)
                 .font(.system(size: compact ? 10 : 11, weight: .semibold))
@@ -463,7 +459,7 @@ struct WatchHitRow: View {
                 .lineLimit(1)
 
             Text(hit.topicTitle)
-                .font(.system(size: compact ? 10 : 11, weight: .medium))
+                .font(.system(size: compact ? 10 : 11, weight: hit.isNew ? .semibold : .medium))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
 
@@ -482,20 +478,39 @@ struct WatchHitRow: View {
 
 struct WidgetStatusDot: View {
     let isNew: Bool
-    let isUnread: Bool
 
     var body: some View {
         Circle()
             .fill(color)
             .frame(width: 6, height: 6)
-            .opacity(isUnread ? 1 : 0.22)
+            .opacity(isNew ? 1 : 0.22)
             .accessibilityHidden(true)
     }
 
     private var color: Color {
-        if isNew && isUnread { return .green }
-        if isUnread { return .red }
-        return .secondary
+        isNew ? .green : .secondary
+    }
+}
+
+struct WidgetFreshnessFooter: View {
+    let snapshot: TalkPulseSnapshot
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: snapshot.isStale ? "clock.badge.exclamationmark" : "clock")
+                .font(.system(size: 10, weight: .semibold))
+            Text(snapshot.cacheFreshnessText)
+                .font(.system(size: 10, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            if snapshot.watchHits.isEmpty {
+                Text("No watchlist hits")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .foregroundStyle(snapshot.isStale ? .orange : .secondary)
     }
 }
 
@@ -570,7 +585,7 @@ struct TalkPulseWidget: Widget {
             TalkPulseWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("TalkPulse")
-        .description("Discourse forum feed with new, unread, and watchlist status.")
+        .description("Discourse forum feed with new topics, freshness, and watchlist status.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
