@@ -234,7 +234,7 @@ let appGroupIdentifier: String = {
         return configuredGroup
     }
 
-    let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.openclaw.talkpulse"
+    let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.example.talkpulse"
     let appBundleIdentifier = bundleIdentifier.hasSuffix(".widget")
         ? String(bundleIdentifier.dropLast(".widget".count))
         : bundleIdentifier

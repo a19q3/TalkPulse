@@ -19,7 +19,7 @@ fi
 
 cd "$(dirname "$0")"
 
-DEFAULT_PREFIX="com.openclaw"
+DEFAULT_PREFIX="com.example"
 BUNDLE_ID_PREFIX="${BUNDLE_ID_PREFIX:-$DEFAULT_PREFIX}"
 APP_BUNDLE_ID="${APP_BUNDLE_ID:-${BUNDLE_ID_PREFIX}.talkpulse}"
 WIDGET_BUNDLE_ID="${WIDGET_BUNDLE_ID:-${APP_BUNDLE_ID}.widget}"
@@ -29,6 +29,9 @@ echo "🔐 Bundle IDs:"
 echo "   App:    $APP_BUNDLE_ID"
 echo "   Widget: $WIDGET_BUNDLE_ID"
 echo "   Group:  $APP_GROUP_ID"
+if [ "$BUNDLE_ID_PREFIX" = "$DEFAULT_PREFIX" ]; then
+    echo "   Note: com.example is a placeholder. Use BUNDLE_ID_PREFIX=com.yourname for your own Apple signing team."
+fi
 echo ""
 
 export BUNDLE_ID_PREFIX APP_BUNDLE_ID WIDGET_BUNDLE_ID APP_GROUP_ID
