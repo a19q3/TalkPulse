@@ -71,7 +71,7 @@ Open the TalkPulse app and go to Settings.
 
 Category IDs are optional. If you leave them empty, TalkPulse still reads the forum's latest feed.
 
-Use **Test forum** to verify the URL before saving. Use **Load categories** to pick categories by name instead of manually inspecting JSON.
+Use **Test forum** to verify the URL before saving. Use **Load categories** to pick categories by name in a bounded selector instead of manually inspecting JSON.
 
 After the first successful refresh, TalkPulse shows a dismissible reminder with the exact desktop-widget path.
 

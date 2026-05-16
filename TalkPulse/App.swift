@@ -337,7 +337,8 @@ struct ContentView: View {
                             CategorySelectionGrid(
                                 categories: availableCategories,
                                 selectedIds: currentCategoryIdSet,
-                                toggle: toggleCategory
+                                toggle: toggleCategory,
+                                clearSelection: clearCategories
                             )
                         }
                     }
@@ -485,6 +486,10 @@ struct ContentView: View {
             ids.insert(category.id)
         }
         categoryIds = ids.sorted().map(String.init).joined(separator: ", ")
+    }
+
+    private func clearCategories() {
+        categoryIds = ""
     }
 
     private func testForum() {
@@ -833,42 +838,65 @@ struct CategorySelectionGrid: View {
     let categories: [DiscourseCategory]
     let selectedIds: Set<Int>
     let toggle: (DiscourseCategory) -> Void
+    let clearSelection: () -> Void
 
     private let columns = [GridItem(.adaptive(minimum: 148), spacing: 8)]
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(categories, id: \DiscourseCategory.id) { (category: DiscourseCategory) in
-                Button {
-                    toggle(category)
-                } label: {
-                    HStack(spacing: 7) {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(hexColor(category.color) ?? .secondary)
-                            .frame(width: 8, height: 18)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(selectedIds.isEmpty ? "No categories selected" : "\(selectedIds.count) selected")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(selectedIds.isEmpty ? .secondary : Color.accentColor)
 
-                        Text(category.displayName)
-                            .font(.system(size: 11, weight: selectedIds.contains(category.id) ? .semibold : .medium))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
+                Spacer()
 
-                        Spacer(minLength: 4)
-
-                        if selectedIds.contains(category.id) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(selectedIds.contains(category.id) ? Color.accentColor.opacity(0.12) : Color(nsColor: .textBackgroundColor).opacity(0.55))
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                if !selectedIds.isEmpty {
+                    Button("Clear", action: clearSelection)
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(selectedIds.contains(category.id) ? "Remove" : "Add") category \(category.displayName)")
             }
+
+            ScrollView {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                    ForEach(categories, id: \DiscourseCategory.id) { (category: DiscourseCategory) in
+                        Button {
+                            toggle(category)
+                        } label: {
+                            HStack(spacing: 7) {
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .fill(hexColor(category.color) ?? .secondary)
+                                    .frame(width: 8, height: 18)
+
+                                Text(category.displayName)
+                                    .font(.system(size: 11, weight: selectedIds.contains(category.id) ? .semibold : .medium))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+
+                                Spacer(minLength: 4)
+
+                                if selectedIds.contains(category.id) {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(selectedIds.contains(category.id) ? Color.accentColor.opacity(0.12) : Color(nsColor: .textBackgroundColor).opacity(0.55))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(selectedIds.contains(category.id) ? "Remove" : "Add") category \(category.displayName)")
+                    }
+                }
+                .padding(8)
+            }
+            .frame(maxHeight: 190)
+            .background(Color(nsColor: .textBackgroundColor).opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .padding(.top, 2)
     }

@@ -167,6 +167,7 @@ The first implementation pass has moved these items out of the recommendation ba
 | First-run guidance | First launch without a saved feed opens Settings and prompts the user to confirm a forum URL. |
 | Widget setup guidance | After a successful refresh, the feed shows a dismissible desktop-widget setup hint. |
 | Forum setup | Settings now includes `Test forum` and `Load categories`, so users do not have to inspect JSON manually. |
+| Category selector | Loaded categories now render inside a bounded selector with selected count and clear action. |
 | Local state wording | User-facing controls now use `seen/unseen` where that better describes local state. |
 | Diagnostics | App Group, bundle ID, cache age, and widget click behavior have moved into a collapsed Diagnostics area. |
 
