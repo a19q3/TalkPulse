@@ -54,7 +54,8 @@ In Xcode:
 3. Select the `TalkPulseWidgetExtension` target.
 4. Set the same signing team.
 5. Build and run the host app once.
-6. Open desktop widgets and add TalkPulse.
+6. Save and refresh a forum in the host app.
+7. Follow the in-app hint to add TalkPulse to the desktop.
 
 Desktop path: right-click desktop -> Edit Widgets -> search for TalkPulse -> drag a size to the desktop.
 
@@ -71,6 +72,8 @@ Open the TalkPulse app and go to Settings.
 Category IDs are optional. If you leave them empty, TalkPulse still reads the forum's latest feed.
 
 Use **Test forum** to verify the URL before saving. Use **Load categories** to pick categories by name instead of manually inspecting JSON.
+
+After the first successful refresh, TalkPulse shows a dismissible reminder with the exact desktop-widget path.
 
 To find category IDs, open:
 

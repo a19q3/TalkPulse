@@ -165,8 +165,10 @@ The first implementation pass has moved these items out of the recommendation ba
 | Freshness | Host app and widget surfaces show compact cache age such as `updated 8m ago` or `cached 2h ago`. |
 | Large widget empty lower area | Large widget now uses empty watchlist space for a compact freshness/no-hits footer. |
 | First-run guidance | First launch without a saved feed opens Settings and prompts the user to confirm a forum URL. |
+| Widget setup guidance | After a successful refresh, the feed shows a dismissible desktop-widget setup hint. |
 | Forum setup | Settings now includes `Test forum` and `Load categories`, so users do not have to inspect JSON manually. |
 | Local state wording | User-facing controls now use `seen/unseen` where that better describes local state. |
+| Diagnostics | App Group, bundle ID, cache age, and widget click behavior have moved into a collapsed Diagnostics area. |
 
 ## Recommended Optimization Path
 
@@ -193,7 +195,7 @@ Recommended UI changes:
 
 - On first launch, show Settings first if no successful snapshot exists. Implemented.
 - Add a "Test forum" action next to the forum URL field. Implemented.
-- After a successful fetch, show a clear "Now add the widget" step.
+- After a successful fetch, show a clear "Now add the widget" step. Implemented.
 - In README, keep developer setup details, but inside the app keep the language product-oriented.
 
 Ideal release path:
@@ -228,7 +230,7 @@ Recommended UI changes:
 
 - Add "Load categories" so users can select categories by name instead of typing IDs. Implemented.
 - Validate the URL and category IDs before saving.
-- Show the current App Group/sync state in a diagnostic area, not primary UI.
+- Show the current App Group/sync state in a diagnostic area, not primary UI. Implemented.
 - Add a "Reset to defaults" confirmation instead of an immediate destructive-looking action.
 
 ### P2: Make Freshness And Failure States Clearer

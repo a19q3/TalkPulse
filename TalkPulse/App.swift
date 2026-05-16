@@ -72,6 +72,8 @@ func extractTopicId(from url: URL) -> Int? {
 
 @MainActor
 struct ContentView: View {
+    private let widgetHintDismissedKey = "talkpulse.widgetHintDismissed"
+
     private enum Panel: String, CaseIterable, Identifiable {
         case feed = "Feed"
         case settings = "Settings"
@@ -91,6 +93,7 @@ struct ContentView: View {
     @State private var isTestingForum = false
     @State private var isLoadingCategories = false
     @State private var showingResetConfirmation = false
+    @State private var showWidgetSetupHint = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -204,6 +207,13 @@ struct ContentView: View {
                 LoadingRows()
             } else if let snap = snapshot, !snap.topics.isEmpty {
                 feedSummary(snap)
+
+                if showWidgetSetupHint {
+                    WidgetSetupHint {
+                        UserDefaults.talkPulse.set(true, forKey: widgetHintDismissedKey)
+                        showWidgetSetupHint = false
+                    }
+                }
 
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(snap.topics.prefix(12)) { topic in
@@ -365,10 +375,7 @@ struct ContentView: View {
                 }
             }
 
-            Text("Settings, feed cache, and host-app seen state use the shared app group when available. Widget clicks open the forum directly so TalkPulse stays out of the way.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            DiagnosticsDisclosure(snapshot: snapshot)
         }
     }
 
@@ -376,6 +383,7 @@ struct ContentView: View {
         UserDefaults.migrateStandardDefaultsIfNeeded()
         let savedSnapshot = UserDefaults.talkPulse.loadSnapshot()
         snapshot = savedSnapshot
+        showWidgetSetupHint = savedSnapshot != nil && !UserDefaults.talkPulse.bool(forKey: widgetHintDismissedKey)
         loadConfigDraft(UserDefaults.talkPulse.loadConfig())
         if savedSnapshot == nil {
             selectedPanel = .settings
@@ -568,6 +576,7 @@ struct ContentView: View {
                     snapshot = newSnapshot
                     isLoading = false
                     selectedPanel = .feed
+                    showWidgetSetupHint = !UserDefaults.talkPulse.bool(forKey: widgetHintDismissedKey)
                     WidgetCenter.shared.reloadAllTimelines()
                 }
             } catch {
@@ -862,6 +871,85 @@ struct CategorySelectionGrid: View {
             }
         }
         .padding(.top, 2)
+    }
+}
+
+struct WidgetSetupHint: View {
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "rectangle.grid.1x2")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.blue)
+                .frame(width: 28, height: 28)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Add TalkPulse to your desktop")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Right-click the desktop, choose Edit Widgets, search TalkPulse, then drag a size into place.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 12)
+
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Dismiss widget setup hint")
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.blue.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+struct DiagnosticsDisclosure: View {
+    let snapshot: TalkPulseSnapshot?
+
+    var body: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 8) {
+                DiagnosticRow(label: "Widget click behavior", value: "Opens forum links directly")
+                DiagnosticRow(label: "Shared storage", value: appGroupIdentifier)
+                DiagnosticRow(label: "Bundle ID", value: Bundle.main.bundleIdentifier ?? "Unknown")
+                DiagnosticRow(label: "Cache", value: snapshot?.cacheFreshnessText ?? "No saved feed")
+                DiagnosticRow(label: "Host-app seen state", value: "Shared with the widget when App Group access is available")
+            }
+            .padding(.top, 8)
+        } label: {
+            Label("Diagnostics", systemImage: "wrench.and.screwdriver")
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+}
+
+struct DiagnosticRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(label)
+                .foregroundStyle(.secondary)
+                .frame(width: 130, alignment: .leading)
+            Text(value)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
