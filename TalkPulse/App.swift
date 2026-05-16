@@ -297,7 +297,7 @@ struct ContentView: View {
                 }
             }
 
-            Text("Settings, feed cache, and read state use the shared app group when available, so widget clicks can update the next widget refresh.")
+            Text("Settings, feed cache, and host-app read state use the shared app group when available. Widget clicks open the forum directly so TalkPulse stays out of the way.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
