@@ -39,6 +39,8 @@ Generate the Xcode project with bundle IDs that belong to your Apple account:
 BUNDLE_ID_PREFIX=com.yourname ./setup.sh
 ```
 
+The repository default uses `com.example` as a placeholder. Use your own reverse-DNS prefix before opening Xcode for a real signed build.
+
 This creates:
 
 | Item | Example |
@@ -75,7 +77,7 @@ Use **Test forum** to verify the URL before saving. Use **Load categories** to p
 
 After the first successful refresh, TalkPulse shows a dismissible reminder with the exact desktop-widget path.
 
-To find category IDs, open:
+You usually do not need to look up category IDs manually. If **Load categories** does not work or you prefer to inspect the Discourse API yourself, open:
 
 ```text
 https://your.discourse.host/categories.json
@@ -85,7 +87,7 @@ Look for each category's `id`. TalkPulse also uses the category `color` field wh
 
 ## Use Your Own Apple Account
 
-The default project IDs are for local development only. Anyone else should generate unique IDs before opening Xcode:
+The default project IDs use `com.example`, which is only a template. Generate unique IDs before opening Xcode:
 
 ```bash
 BUNDLE_ID_PREFIX=com.yourname ./setup.sh
@@ -154,6 +156,12 @@ Regenerate without opening Xcode:
 
 ```bash
 OPEN_XCODE=0 ./setup.sh
+```
+
+For a real local run, include your own prefix:
+
+```bash
+OPEN_XCODE=0 BUNDLE_ID_PREFIX=com.yourname ./setup.sh
 ```
 
 Compile from the command line:
