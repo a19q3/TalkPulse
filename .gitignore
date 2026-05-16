@@ -1,0 +1,13 @@
+# Xcode
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+build*/
+
+# Generated project (we have project.yml)
+TalkPulse.xcodeproj/
+*.xcuserstate
+
+# macOS
+.DS_Store
