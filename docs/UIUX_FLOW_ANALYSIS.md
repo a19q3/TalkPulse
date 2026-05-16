@@ -164,6 +164,7 @@ The first implementation pass has moved these items out of the recommendation ba
 | Widget click model | Widget topics continue to open the forum directly without bringing the host app forward. |
 | Freshness | Host app and widget surfaces show compact cache age such as `updated 8m ago` or `cached 2h ago`. |
 | Large widget empty lower area | Large widget now uses empty watchlist space for a compact freshness/no-hits footer. |
+| Large widget space use | Large mode now adds compact "More recent" rows when watchlist is empty, and falls back to status rows only when there are not enough topics. |
 | First-run guidance | First launch without a saved feed opens Settings and prompts the user to confirm a forum URL. |
 | Widget setup guidance | After a successful refresh, the feed shows a dismissible desktop-widget setup hint. |
 | Forum setup | Settings now includes `Test forum` and `Load categories`, so users do not have to inspect JSON manually. |
@@ -222,8 +223,9 @@ Large widget:
 
 - Use an adaptive lower section:
   - If watchlist hits exist, show watchlist.
-  - If no watchlist hits exist, use the space for one more topic, freshness, or configuration hint.
-- Add a small "Updated x min ago" signal.
+  - If no watchlist hits exist and more topics are available, fill the lower section with compact "More recent" rows. Implemented.
+  - If no watchlist hits exist and there are not enough topics, use status rows for new count, freshness, and watchlist state. Implemented.
+- Add a small "Updated x min ago" signal. Implemented.
 
 ### P2: Make Settings More Ergonomic
 

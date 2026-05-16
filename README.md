@@ -8,7 +8,7 @@ Set a forum URL, optionally add category IDs and watch keywords, then keep the l
 
 - Small widget: one important topic plus the current new-topic count.
 - Medium widget: up to two readable topic rows.
-- Large widget: up to four topic rows plus watchlist hits when available.
+- Large widget: three readable topic rows plus compact recent rows or watchlist hits, so the large surface stays useful even when one section is sparse.
 - Clickable rows: open the topic directly in your browser.
 - Local seen state: topics opened from the host app are marked seen on the next refresh.
 - New-topic badges in the widget, plus local seen/unseen controls in the host app.

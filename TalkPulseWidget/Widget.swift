@@ -160,7 +160,8 @@ struct LargeWidgetView: View {
                         .padding(.bottom, 6)
                 }
 
-                let displayed = Array(entry.snapshot.topics.prefix(largeEntryCount))
+                let displayed = Array(entry.snapshot.topics.prefix(primaryLargeEntryCount))
+                let compactFill = Array(entry.snapshot.topics.dropFirst(displayed.count).prefix(compactFillEntryCount))
 
                 if displayed.isEmpty {
                     EmptyStateView()
@@ -188,9 +189,17 @@ struct LargeWidgetView: View {
                     ForEach(entry.snapshot.watchHits.prefix(2)) { hit in
                         WatchHitLink(hit: hit, compact: false)
                     }
+                } else if !compactFill.isEmpty {
+                    Divider().padding(.vertical, 6)
+                    LargeSectionLabel(title: "More recent", systemImage: "line.3.horizontal.decrease.circle")
+                        .padding(.bottom, 3)
+
+                    ForEach(compactFill) { topic in
+                        CompactTopicLink(topic: topic)
+                    }
                 } else if !displayed.isEmpty {
                     Divider().padding(.vertical, 6)
-                    WidgetFreshnessFooter(snapshot: entry.snapshot)
+                    LargeSignalRows(snapshot: entry.snapshot)
                 }
             }
         }
@@ -202,8 +211,15 @@ struct LargeWidgetView: View {
         return nil
     }
 
-    private var largeEntryCount: Int {
-        min(4, max(1, entry.entryCount), entry.snapshot.topics.count)
+    private var primaryLargeEntryCount: Int {
+        let cap = entry.snapshot.watchHits.isEmpty ? 3 : 4
+        return min(cap, max(1, entry.entryCount), entry.snapshot.topics.count)
+    }
+
+    private var compactFillEntryCount: Int {
+        guard entry.snapshot.watchHits.isEmpty else { return 0 }
+        let targetRows = min(6, max(5, entry.entryCount), entry.snapshot.topics.count)
+        return max(0, targetRows - primaryLargeEntryCount)
     }
 }
 
@@ -356,6 +372,21 @@ struct SmallTopicLink: View {
     }
 }
 
+struct CompactTopicLink: View {
+    let topic: TalkTopic
+
+    var body: some View {
+        if let url = widgetLink(for: topic) {
+            Link(destination: url) {
+                CompactTopicRow(topic: topic)
+            }
+            .buttonStyle(.plain)
+        } else {
+            CompactTopicRow(topic: topic)
+        }
+    }
+}
+
 func widgetLink(for topic: TalkTopic) -> URL? {
     URL(string: topic.url)
 }
@@ -476,6 +507,92 @@ struct WatchHitRow: View {
     }
 }
 
+struct CompactTopicRow: View {
+    let topic: TalkTopic
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            WidgetStatusDot(isNew: topic.isNew)
+
+            Text(topic.title)
+                .font(.system(size: 10, weight: topic.isNew ? .semibold : .medium))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            Text(topic.relativeTime)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .accessibilityLabel("\(topic.title), \(topic.relativeTime)")
+    }
+}
+
+struct LargeSectionLabel: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .semibold))
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.secondary)
+    }
+}
+
+struct LargeSignalRows: View {
+    let snapshot: TalkPulseSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            LargeSignalRow(
+                systemImage: "sparkle",
+                text: snapshot.newTopicsCount > 0 ? "\(snapshot.newTopicsCount) new topics in the cached feed" : "No new topics in the cached feed",
+                color: snapshot.newTopicsCount > 0 ? .green : .secondary
+            )
+            LargeSignalRow(
+                systemImage: snapshot.isStale ? "clock.badge.exclamationmark" : "clock",
+                text: snapshot.cacheFreshnessText,
+                color: snapshot.isStale ? .orange : .secondary
+            )
+            LargeSignalRow(
+                systemImage: "eye.slash",
+                text: "No watchlist hits",
+                color: .secondary
+            )
+        }
+    }
+}
+
+struct LargeSignalRow: View {
+    let systemImage: String
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 14)
+            Text(text)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 struct WidgetStatusDot: View {
     let isNew: Bool
 
@@ -489,28 +606,6 @@ struct WidgetStatusDot: View {
 
     private var color: Color {
         isNew ? .green : .secondary
-    }
-}
-
-struct WidgetFreshnessFooter: View {
-    let snapshot: TalkPulseSnapshot
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: snapshot.isStale ? "clock.badge.exclamationmark" : "clock")
-                .font(.system(size: 10, weight: .semibold))
-            Text(snapshot.cacheFreshnessText)
-                .font(.system(size: 10, weight: .medium))
-                .lineLimit(1)
-            Spacer(minLength: 0)
-            if snapshot.watchHits.isEmpty {
-                Text("No watchlist hits")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .foregroundStyle(snapshot.isStale ? .orange : .secondary)
     }
 }
 
