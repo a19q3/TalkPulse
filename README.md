@@ -10,7 +10,7 @@ Set a forum URL, optionally add category IDs and watch keywords, then keep the l
 - Medium widget: up to two readable topic rows.
 - Large widget: up to four topic rows plus watchlist hits when available.
 - Clickable rows: open the topic directly in your browser.
-- Local read state: clicked topics are marked read on the next refresh.
+- Local read state: topics opened from the host app are marked read on the next refresh.
 - New and unread badges in both the host app and widget.
 - In-app settings for forum URL, category IDs, and watch keywords.
 - Offline cache with stale/error hints instead of a blank widget.
@@ -110,7 +110,8 @@ Both targets must use the same App Group if you want the host app and widget to 
 - The widget refreshes about every 30 minutes.
 - Fetch failures retry sooner and keep showing cached content.
 - The host app's Refresh button updates the cache immediately.
-- Clicking a topic opens the browser and records that topic as read locally.
+- Clicking a widget topic opens the browser directly. The host app is not brought forward, because having both the app and website pop up is noisy.
+- Opening a topic from inside the host app records that topic as read locally.
 - Watchlist hits are based on keyword matches in topic titles.
 
 ## If The Widget Does Not Appear

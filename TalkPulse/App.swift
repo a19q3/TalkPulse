@@ -54,6 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSWorkspace.shared.open(targetURL)
+        NSApp.hide(nil)
     }
 }
 

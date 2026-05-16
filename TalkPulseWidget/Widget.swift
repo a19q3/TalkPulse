@@ -361,19 +361,11 @@ struct SmallTopicLink: View {
 }
 
 func widgetLink(for topic: TalkTopic) -> URL? {
-    widgetLink(for: topic.url)
+    URL(string: topic.url)
 }
 
 func widgetLink(for hit: WatchHit) -> URL? {
-    widgetLink(for: hit.url)
-}
-
-private func widgetLink(for target: String) -> URL? {
-    var components = URLComponents()
-    components.scheme = "talkpulse"
-    components.host = "open"
-    components.queryItems = [URLQueryItem(name: "url", value: target)]
-    return components.url
+    URL(string: hit.url)
 }
 
 // MARK: - Rows
